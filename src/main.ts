@@ -1,10 +1,6 @@
 import { Plugin } from 'obsidian';
 import { CodeTime } from './codetime';
-import {
-	CodeTimeSettingTab,
-	DEFAULT_SETTINGS,
-	type CodeTimePluginSettings,
-} from './settings';
+import { type CodeTimePluginSettings, CodeTimeSettingTab, DEFAULT_SETTINGS } from './settings';
 
 export default class CodeTimePlugin extends Plugin {
 	settings!: CodeTimePluginSettings;
@@ -18,15 +14,11 @@ export default class CodeTimePlugin extends Plugin {
 	}
 
 	onunload() {
-		this.codeTime.destroy();
+		void this.codeTime.destroy();
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			(await this.loadData()) as Partial<CodeTimePluginSettings>,
-		);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, (await this.loadData()) as Partial<CodeTimePluginSettings>);
 	}
 
 	async saveSettings() {

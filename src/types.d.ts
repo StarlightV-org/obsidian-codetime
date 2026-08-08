@@ -38,3 +38,11 @@ export interface Payload {
 	gitBranch: string;
 	operationType: string;
 }
+
+export interface Stat {
+	data: Array<{
+		duration: number;
+		time: string;
+		by: string;
+	}>;
+}

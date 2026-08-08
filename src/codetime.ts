@@ -1,8 +1,7 @@
-import { MarkdownView, moment, Platform, request, TAbstractFile, TFile } from 'obsidian';
-import type CodeTimePlugin from './main';
-import type { Payload, SettingsApp, UserData } from './types';
+import { Platform, request, type TAbstractFile, type TFile } from 'obsidian';
 import { ActivityLogModal } from './activity-log';
-import { ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import type CodeTimePlugin from './main';
+import type { Payload, SettingsApp, Stat } from './types';
 
 export class CodeTime {
 	private readonly project: string =
@@ -12,9 +11,7 @@ export class CodeTime {
 	private readonly statusBarItemEl: HTMLElement;
 	private readonly activityLogModal: ActivityLogModal;
 	private state: 'loading' | 'connected' | 'disconnected' | 'no-token' | 'invalid-token' | 'error' = 'disconnected';
-	private errors: number = 0;
 	private codeTimeData: { minutes: number } | null = null;
-	private userData: UserData | null = null;
 	private readonly eventThrottleMs = 1_000;
 	private readonly lastTrackedAt = new Map<string, number>();
 
@@ -24,9 +21,9 @@ export class CodeTime {
 	}
 
 	async destroy(): Promise<void> {
-		this.statusBarItemEl.setText('CodeTime: Disconnected');
+		this.statusBarItemEl.setText('Codetime: Disconnected');
 		this.activityLogModal.close();
-		await this.wait(1000);
+		this.state = 'disconnected';
 	}
 
 	async reload(): Promise<void> {
@@ -37,6 +34,14 @@ export class CodeTime {
 		await this.destroy();
 		// DEV
 		// this.openSettings();
+
+		this.statusBarItemEl.onClickEvent(() => {
+			if (this.state === 'invalid-token' || this.state === 'no-token') {
+				this.openSettings();
+			} else {
+				this.activityLogModal.open();
+			}
+		});
 
 		this.state = 'loading';
 		this.syncStatusBar();
@@ -85,7 +90,7 @@ export class CodeTime {
 		this.plugin.app.workspace.onLayoutReady(() => {
 			this.plugin.registerEvent(
 				this.plugin.app.workspace.on('file-open', (file) => {
-					void this.track('activateFileChanged', file!);
+					void this.track('activateFileChanged', file);
 				}),
 			);
 
@@ -100,7 +105,7 @@ export class CodeTime {
 			);
 			this.plugin.registerEvent(
 				this.plugin.app.vault.on('modify', (file) => {
-					this.track('fileEdited', file);
+					void this.track('fileEdited', file);
 					// this.track('fileSaved', file); // best available public equivalent
 				}),
 			);
@@ -177,17 +182,17 @@ export class CodeTime {
 			absoluteFile: newName,
 			platform: os,
 			// @ts-expect-error
-			platformArch: Platform.isDesktopApp ? process.arch : 'unknown',
+			// eslint-disable-next-line no-undef, @typescript-eslint/no-unsafe-member-access -- process.arch is only available in desktop apps
+			platformArch: Platform.isDesktopApp && 'arch' in process ? (process.arch as unknown) : 'unknown',
 			gitOrigin: 'none',
 			gitBranch: 'none',
 		} as Payload;
-		console.log(payload);
 
 		const url = new URL(`/v3/users/event-log`, this.plugin.settings.apiUrl);
 
 		this.activityLogModal.appendLine(`Sending event: ${event}`);
 
-		const response = await request({
+		await request({
 			url: url.toString(),
 			method: 'POST',
 			headers: {
@@ -196,14 +201,10 @@ export class CodeTime {
 				'User-Agent': 'obsidian-codetime',
 			},
 			body: JSON.stringify(payload),
-		}).catch((e) => {
-			this.errors++;
+		}).catch((e: Error) => {
 			this.activityLogModal.appendLine(`Failed to send event: ${e?.message ?? 'Unknown error'}`, 'error');
-			// void this.reload();
 			return null;
 		});
-
-		// emit/store event
 	}
 
 	private async fetchCurrentCodeTime(): Promise<void> {
@@ -221,8 +222,7 @@ export class CodeTime {
 				Authorization: `Bearer ${this.getTokenFromSettings()}`,
 				'User-Agent': 'obsidian-codetime',
 			},
-		}).catch((e) => {
-			this.errors++;
+		}).catch((e: Error) => {
 			this.activityLogModal.appendLine(
 				`Failed to fetch CodeTime data: ${e?.message ?? 'Unknown error'}`,
 				'error',
@@ -234,8 +234,7 @@ export class CodeTime {
 		if (!response) {
 			return;
 		}
-		const responseJson = JSON.parse(response);
-		console.log(responseJson);
+		const responseJson: Stat = JSON.parse(response) as Stat;
 		this.codeTimeData = { minutes: responseJson.data[0]?.duration ?? 0 };
 		this.activityLogModal.appendLine(
 			`CodeTime data fetched successfully: ${this.convertMinutes(this.codeTimeData.minutes)} (${this.codeTimeData.minutes} minutes)`,
@@ -251,21 +250,6 @@ export class CodeTime {
 			this.statusBarItemEl.setText(text);
 		};
 
-		const setClickEvent = (cb?: () => void) => {
-			this.statusBarItemEl.removeEventListener('click', () => {});
-			this.statusBarItemEl.onClickEvent(() => {
-				console.log('cb', !!cb);
-				if (cb) {
-					cb();
-					return;
-				}
-
-				this.activityLogModal.open();
-			});
-
-			return;
-		};
-
 		if (this.state === 'no-token' || this.state === 'invalid-token') {
 			text += 'CodeTime';
 			if (this.state === 'invalid-token') {
@@ -274,13 +258,8 @@ export class CodeTime {
 				text += ': No Token';
 			}
 			syncText(text);
-			setClickEvent(() => {
-				this.openSettings();
-			});
 			return;
 		}
-
-		setClickEvent();
 
 		if (this.state === 'error') {
 			text += 'CodeTime: Error';
@@ -324,9 +303,7 @@ export class CodeTime {
 				Authorization: `Bearer ${this.getTokenFromSettings()}`,
 				'User-Agent': 'obsidian-codetime',
 			},
-		}).catch((e) => {
-			this.errors++;
-
+		}).catch((e: Error) => {
 			this.activityLogModal.appendLine(
 				`Failed to fetch CodeTime data: ${e?.message ?? 'Unknown error'}`,
 				'error',
@@ -344,10 +321,7 @@ export class CodeTime {
 			return false;
 		}
 
-		this.userData = typeof response === 'string' ? JSON.parse(response) : null;
-
-		console.log(this.userData);
-
+		// this.userData = typeof response === 'string' ? (JSON.parse(response) as UserData) : null;
 		this.activityLogModal.appendLine('Authorization successful', 'success');
 		return true;
 	}
@@ -368,7 +342,5 @@ export class CodeTime {
 		app.setting.openTabById(this.plugin.manifest.id);
 	}
 
-	private async wait(ms: number): Promise<void> {
-		return new Promise((resolve) => setTimeout(resolve, ms));
-	}
+	//
 }

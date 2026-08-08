@@ -1,4 +1,4 @@
-import { App, Modal, Notice } from 'obsidian';
+import { type App, Modal } from 'obsidian';
 
 export type ActivityLogLevel = 'info' | 'success' | 'warning' | 'error';
 
@@ -15,7 +15,6 @@ export class ActivityLogModal extends Modal {
 	private filter: ActivityLogFilter = 'all';
 	private searchTerm = '';
 	private logEl?: HTMLDivElement;
-	private copyButton?: HTMLButtonElement;
 
 	constructor(app: App) {
 		super(app);
@@ -30,15 +29,10 @@ export class ActivityLogModal extends Modal {
 	onClose(): void {
 		this.contentEl.empty();
 		this.logEl = undefined;
-		this.copyButton = undefined;
 	}
 
 	/** Add a line to the log. It is retained when the modal is closed. */
-	appendLine(
-		message: string,
-		level: ActivityLogLevel = 'info',
-		timestamp = new Date(),
-	): void {
+	appendLine(message: string, level: ActivityLogLevel = 'info', timestamp = new Date()): void {
 		this.entries.push({ message, level, timestamp });
 		this.renderLog();
 	}
@@ -115,10 +109,8 @@ export class ActivityLogModal extends Modal {
 		this.logEl.empty();
 		const searchTerm = this.searchTerm.trim().toLowerCase();
 		const visibleEntries = this.entries.filter((entry) => {
-			const matchesLevel =
-				this.filter === 'all' || entry.level === this.filter;
-			const matchesSearch =
-				!searchTerm || entry.message.toLowerCase().includes(searchTerm);
+			const matchesLevel = this.filter === 'all' || entry.level === this.filter;
+			const matchesSearch = !searchTerm || entry.message.toLowerCase().includes(searchTerm);
 			return matchesLevel && matchesSearch;
 		});
 

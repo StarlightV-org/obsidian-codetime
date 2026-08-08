@@ -1,4 +1,11 @@
-import { type App, MarkdownRenderer, PluginSettingTab, SecretComponent, type SettingDefinitionItem } from 'obsidian';
+import {
+	type App,
+	Component,
+	MarkdownRenderer,
+	PluginSettingTab,
+	SecretComponent,
+	type SettingDefinitionItem,
+} from 'obsidian';
 import type CodeTimePlugin from './main';
 
 export interface CodeTimePluginSettings {
@@ -21,6 +28,7 @@ export const DEFAULT_SETTINGS: CodeTimePluginSettings = {
 
 export class CodeTimeSettingTab extends PluginSettingTab {
 	plugin: CodeTimePlugin;
+	private markdownComponents: Component[] = [];
 
 	constructor(app: App, plugin: CodeTimePlugin) {
 		super(app, plugin);
@@ -28,22 +36,39 @@ export class CodeTimeSettingTab extends PluginSettingTab {
 	}
 
 	private markdownDescription(markdown: string): DocumentFragment {
-		const descriptionEl = document.createElement('div');
+		const descriptionEl = createDiv();
+		const component = new Component();
+		component.load();
+		this.markdownComponents.push(component);
 
-		void MarkdownRenderer.render(this.app, markdown, descriptionEl, '', this.plugin);
+		void MarkdownRenderer.render(this.app, markdown, descriptionEl, '', component);
 
 		return createFragment((fragment) => {
 			fragment.appendChild(descriptionEl);
 		});
 	}
 
+	private unloadMarkdownComponents(): void {
+		for (const component of this.markdownComponents) {
+			component.unload();
+		}
+		this.markdownComponents = [];
+	}
+
+	override hide(): void {
+		this.unloadMarkdownComponents();
+		super.hide();
+	}
+
 	getSettingDefinitions(): SettingDefinitionItem[] {
+		this.unloadMarkdownComponents();
+
 		return [
 			{
 				type: 'group',
 				heading: 'CodeTime',
 				extraButtons: [
-					(button) => {
+					async (button) => {
 						button.setIcon('reset');
 						button.onClick(async () => {
 							this.plugin.settings = {
@@ -52,7 +77,7 @@ export class CodeTimeSettingTab extends PluginSettingTab {
 							};
 							await this.plugin.saveSettings();
 							this.update();
-							this.plugin.codeTime.configure();
+							await this.plugin.codeTime.configure();
 						});
 						button.setTooltip('Reset to default');
 					},
