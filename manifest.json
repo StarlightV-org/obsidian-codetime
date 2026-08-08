@@ -1,7 +1,7 @@
 {
 	"id": "starlightv-codetime",
 	"name": "CodeTime.dev",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "1.13.0",
 	"description": "This is a plugin that integrates with CodeTime.dev to track your writing activity. This is not made by or affiliated with codetime.dev.",
 	"author": "StarlightV-Org",

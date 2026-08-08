@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-codetime",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"main": "main.js",
 	"description": "This is a plugin that integrates with CodeTime.dev to track your writing activity. This is not made by or affiliated with codetime.dev.",
 	"keywords": [],
@@ -8,7 +8,7 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"version": "node version-bump.mjs && git add manifest.json versions.json",
+		"version": "version-bump.mjs && git add manifest.json versions.json",
 		"lint": "eslint ."
 	},
 	"type": "module",
