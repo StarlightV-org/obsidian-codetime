@@ -23,5 +23,8 @@
 		"obsidian": "1.13.1",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.66.0"
+	},
+	"dependencies": {
+		"@codemirror/view": "^6.38.6"
 	}
 }

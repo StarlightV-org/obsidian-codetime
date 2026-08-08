@@ -1,92 +1,101 @@
-# Obsidian Sample Plugin
+# CodeTime.dev for Obsidian
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Track time spent writing in Obsidian with your [CodeTime.dev](https://codetime.dev) account. The plugin records relevant vault activity, shows the current project's time in the status bar, and provides a diagnostic activity log.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+> This is an independent integration and is not made by or affiliated with CodeTime.dev.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+## Features
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and outputs a Notice on click.
-- Registers a global interval which logs 'setInterval' to the console.
+- Tracks file opens, editor changes, file creation, and file modifications.
+- Displays today's tracked time for the active project in Obsidian's status bar.
+- Uses the vault name as the project by default, with an optional project override.
+- Keeps your CodeTime token in Obsidian's secret storage.
+- Hides filenames by default.
+- Includes a filterable activity log for connection and request diagnostics.
+- Works on desktop and mobile Obsidian.
 
-## First time developing plugins?
+## Installation
 
-Quick starting guide for new plugin devs:
+### From a release
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `src/main.ts` to `main.js`.
-- Make changes to `src/main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+1. Download `main.js`, `manifest.json`, and `styles.css` from the desired release.
+2. Create this folder in your vault:
 
-## Releasing new releases
+   ```text
+   <vault>/.obsidian/plugins/starlightv-codetime/
+   ```
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+3. Copy the three downloaded files into that folder.
+4. In Obsidian, open **Settings → Community plugins**, enable community plugins if needed, then enable **CodeTime.dev**.
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+### Development install
 
-## Adding your plugin to the community plugin list
-
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
-
-## How to use
-
-- Clone this repo.
-- Make sure your NodeJS is at least v18 (`node --version`).
-- `npm i` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
-
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint
-
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-	"fundingUrl": "https://buymeacoffee.com"
-}
+```bash
+git clone <repository-url>
+cd obsidian-codetime
+npm install
+npm run dev
 ```
 
-If you have multiple URLs, you can also do:
+For a one-off production build, run:
 
-```json
-{
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://buymeacoffee.com",
-		"GitHub Sponsor": "https://github.com/sponsors",
-		"Patreon": "https://www.patreon.com/"
-	}
-}
+```bash
+npm run build
 ```
 
-## API Documentation
+Build output is written to `main.js` in the plugin root. Reload Obsidian after rebuilding.
 
-See https://docs.obsidian.md
+## Setup
+
+1. Sign in to CodeTime.dev and get your token from its [account settings](https://codetime.dev/dashboard/settings).
+2. In Obsidian, open **Settings → Community plugins → CodeTime.dev**.
+3. Under **CodeTime Token**, select or create an Obsidian secret containing the token.
+4. Confirm the status bar no longer says `CodeTime: No Token` or `CodeTime: Invalid Token`.
+
+The plugin validates the token when its settings are applied. Clicking a missing- or invalid-token status item opens this settings page.
+
+## Settings
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| CodeTime Token | — | An Obsidian secret containing the CodeTime API token. The token itself is not written to the plugin's settings data. |
+| Server URL | `https://api.codetime.dev` | CodeTime API base URL. Change this only when using another compatible server. |
+| Project Override | Vault name | Project name reported to CodeTime instead of the vault name. |
+| Hide File Names | On | Replaces the filename sent with a generated anonymous name. |
+
+Use the reset button in the **CodeTime** settings section to restore the default server URL and project override. It keeps the configured token.
+
+## What is tracked and sent
+
+After a valid token is configured, the plugin sends activity events to the configured CodeTime server when you open a file, edit in the editor, create a file, or modify a file. Events for the same event type and file are throttled to at most one per second.
+
+Each event includes the project, file type/extension, event time and type, read or edit operation, editor (`Obsidian`), platform, and placeholder Git origin/branch values. The plugin also requests the current project's daily time total once a minute to update the status bar.
+
+With **Hide File Names** enabled (the default), the real filename and path are not sent; each event instead uses an anonymous generated name. The project name is still sent, so set a **Project Override** if your vault name is sensitive.
+
+### Privacy notes
+
+- Tracking requires network requests to the configured CodeTime server; it does not send vault note contents.
+- Your token is retrieved from Obsidian secret storage. Only its secret reference is saved in plugin settings.
+- The current implementation writes event payloads and API responses to Obsidian's developer console for debugging. Avoid sharing console logs if they may contain account or activity metadata.
+- Disabling the plugin stops its tracked event listeners and scheduled status updates.
+
+## Activity log
+
+Click the status-bar item while connected to open the activity log. It records connection state, authorization results, request attempts, throttling, and errors for the current session. Use the level selector and search field to narrow the displayed entries.
+
+## Development
+
+This project uses TypeScript, esbuild, npm, and the Obsidian API.
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start esbuild in watch mode. |
+| `npm run build` | Type-check and create a production bundle. |
+| `npm run lint` | Run ESLint. |
+
+The required release artifacts are `main.js`, `manifest.json`, and `styles.css`. Do not commit generated dependencies or build output.
+
+## License
+
+[MIT](LICENSE)
