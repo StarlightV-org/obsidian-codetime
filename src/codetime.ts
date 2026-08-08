@@ -240,6 +240,7 @@ export class CodeTime {
 			`CodeTime data fetched successfully: ${this.convertMinutes(this.codeTimeData.minutes)} (${this.codeTimeData.minutes} minutes)`,
 			'success',
 		);
+		this.syncStatusBar();
 	}
 
 	private syncStatusBar(): void {
