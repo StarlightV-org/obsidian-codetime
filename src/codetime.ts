@@ -1,0 +1,374 @@
+import { MarkdownView, moment, Platform, request, TAbstractFile, TFile } from 'obsidian';
+import type CodeTimePlugin from './main';
+import type { Payload, SettingsApp, UserData } from './types';
+import { ActivityLogModal } from './activity-log';
+import { ViewPlugin, type ViewUpdate } from '@codemirror/view';
+
+export class CodeTime {
+	private readonly project: string =
+		this.plugin.settings.projectOveride !== ''
+			? this.plugin.settings.projectOveride
+			: this.plugin.app.vault.getName();
+	private readonly statusBarItemEl: HTMLElement;
+	private readonly activityLogModal: ActivityLogModal;
+	private state: 'loading' | 'connected' | 'disconnected' | 'no-token' | 'invalid-token' | 'error' = 'disconnected';
+	private errors: number = 0;
+	private codeTimeData: { minutes: number } | null = null;
+	private userData: UserData | null = null;
+	private readonly eventThrottleMs = 1_000;
+	private readonly lastTrackedAt = new Map<string, number>();
+
+	constructor(private readonly plugin: CodeTimePlugin) {
+		this.statusBarItemEl = plugin.addStatusBarItem();
+		this.activityLogModal = new ActivityLogModal(plugin.app);
+	}
+
+	async destroy(): Promise<void> {
+		this.statusBarItemEl.setText('CodeTime: Disconnected');
+		this.activityLogModal.close();
+		await this.wait(1000);
+	}
+
+	async reload(): Promise<void> {
+		await this.configure();
+	}
+
+	async configure(): Promise<void> {
+		await this.destroy();
+		// DEV
+		// this.openSettings();
+
+		this.state = 'loading';
+		this.syncStatusBar();
+		this.activityLogModal.appendLine(`Vault: ${this.project}`);
+		this.activityLogModal.appendLine(
+			`Project Override is ${this.plugin.settings.projectOveride === '' ? 'Off' : 'On'}`,
+			'warning',
+		);
+
+		const token = this.getTokenFromSettings();
+
+		if (!token) {
+			this.state = 'no-token';
+			this.syncStatusBar();
+			this.activityLogModal.appendLine('No Token Provided', 'error');
+			return;
+		}
+
+		this.activityLogModal.appendLine('Token is configured');
+		if (!(await this.testToken())) {
+			return;
+		}
+
+		this.state = 'connected';
+		this.syncStatusBar();
+
+		this.activityLogModal.appendLine('Connecting to server');
+		await this.fetchCurrentCodeTime();
+		this.syncStatusBar();
+
+		await this.startLoop();
+		this.listenFor();
+	}
+
+	private async startLoop(): Promise<void> {
+		this.activityLogModal.appendLine('Starting loop');
+		this.plugin.registerInterval(
+			window.setInterval(async () => {
+				this.activityLogModal.appendLine('Fetching data');
+				await this.fetchCurrentCodeTime();
+			}, 1000 * 60),
+		);
+	}
+
+	private listenFor(): void {
+		this.plugin.app.workspace.onLayoutReady(() => {
+			this.plugin.registerEvent(
+				this.plugin.app.workspace.on('file-open', (file) => {
+					void this.track('activateFileChanged', file!);
+				}),
+			);
+
+			this.plugin.registerEvent(
+				this.plugin.app.workspace.on('editor-change', (_editor, info) => {
+					void this.track('editorChanged', info.file);
+				}),
+			);
+
+			this.plugin.registerEvent(
+				this.plugin.app.vault.on('create', (file) => void this.track('fileCreated', file)),
+			);
+			this.plugin.registerEvent(
+				this.plugin.app.vault.on('modify', (file) => {
+					this.track('fileEdited', file);
+					// this.track('fileSaved', file); // best available public equivalent
+				}),
+			);
+
+			// this.plugin.registerEditorExtension(
+			// 	ViewPlugin.fromClass(
+			// 		class {
+			// 			update(update: ViewUpdate) {
+			// 				// if (update.docChanged) {
+			// 				// 	console.log(update);
+			// 				// 	// Inspect update.transactions to calculate inserted/deleted lines.
+			// 				// }
+
+			// 				// if (update.selectionSet) {
+			// 				// 	console.log('update.selectionSet', update);
+			// 				// 	// update.state.selection.ranges
+			// 				// }
+
+			// 				// if (update.viewportChanged) {
+			// 				// 	console.log('update.viewportChanged', update);
+			// 				// 	// update.view.visibleRanges
+			// 				// }
+			// 			}
+			// 		},
+			// 	),
+			// );
+		});
+	}
+
+	private async track(event: string, file: TFile | TAbstractFile | undefined | null) {
+		// console.log(event, file);
+		// if (!file) return;
+
+		const originalFilePath = file?.path ?? '__no-file__';
+		const throttleKey = `${event}:${originalFilePath}`;
+		const now = Date.now();
+		const lastTime = this.lastTrackedAt.get(throttleKey);
+		if (lastTime !== undefined && now - lastTime < this.eventThrottleMs) {
+			this.activityLogModal.appendLine(`Throttled: ${event} ${originalFilePath}`);
+			return; // same event, same file, within the throttle window
+		}
+
+		this.lastTrackedAt.set(throttleKey, now);
+
+		const hideFile = this.plugin.settings.hideFileNames;
+		const newName = !hideFile ? file?.name : `Untitled-${crypto.randomUUID()}`;
+
+		const getOs = (): string => {
+			switch (true) {
+				case Platform.isWin:
+					return 'windows';
+				case Platform.isLinux:
+					return 'linux';
+				case Platform.isIosApp:
+					return 'ios';
+				case Platform.isAndroidApp:
+					return 'android';
+				case Platform.isMacOS:
+					return 'macos';
+				default:
+					return 'unknown';
+			}
+		};
+		const os = getOs();
+
+		const payload = {
+			editor: 'Obsidian',
+			language: file && 'extension' in file ? file.extension : 'unknown',
+			project: this.project,
+			eventTime: Date.now(),
+			eventType: event,
+			operationType: event === 'activateFileChanged' ? 'read' : 'edit',
+			relativeFile: newName,
+			absoluteFile: newName,
+			platform: os,
+			// @ts-expect-error
+			platformArch: Platform.isDesktopApp ? process.arch : 'unknown',
+			gitOrigin: 'none',
+			gitBranch: 'none',
+		} as Payload;
+		console.log(payload);
+
+		const url = new URL(`/v3/users/event-log`, this.plugin.settings.apiUrl);
+
+		this.activityLogModal.appendLine(`Sending event: ${event}`);
+
+		const response = await request({
+			url: url.toString(),
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${this.getTokenFromSettings()}`,
+				'User-Agent': 'obsidian-codetime',
+			},
+			body: JSON.stringify(payload),
+		}).catch((e) => {
+			this.errors++;
+			this.activityLogModal.appendLine(`Failed to send event: ${e?.message ?? 'Unknown error'}`, 'error');
+			// void this.reload();
+			return null;
+		});
+
+		// emit/store event
+	}
+
+	private async fetchCurrentCodeTime(): Promise<void> {
+		const url = new URL(`/v3/users/self/stats`, this.plugin.settings.apiUrl);
+		url.searchParams.set('by', 'workspace');
+		url.searchParams.set('unit', 'days');
+		url.searchParams.set('limit', '1');
+		url.searchParams.set('project', this.project);
+
+		const response = await request({
+			url: url.toString(),
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${this.getTokenFromSettings()}`,
+				'User-Agent': 'obsidian-codetime',
+			},
+		}).catch((e) => {
+			this.errors++;
+			this.activityLogModal.appendLine(
+				`Failed to fetch CodeTime data: ${e?.message ?? 'Unknown error'}`,
+				'error',
+			);
+			// void this.reload();
+			return null;
+		});
+
+		if (!response) {
+			return;
+		}
+		const responseJson = JSON.parse(response);
+		console.log(responseJson);
+		this.codeTimeData = { minutes: responseJson.data[0]?.duration ?? 0 };
+		this.activityLogModal.appendLine(
+			`CodeTime data fetched successfully: ${this.convertMinutes(this.codeTimeData.minutes)} (${this.codeTimeData.minutes} minutes)`,
+			'success',
+		);
+	}
+
+	private syncStatusBar(): void {
+		let text = '';
+
+		const syncText = (text: string) => {
+			this.activityLogModal.appendLine(`State: ${this.state}`);
+			this.statusBarItemEl.setText(text);
+		};
+
+		const setClickEvent = (cb?: () => void) => {
+			this.statusBarItemEl.removeEventListener('click', () => {});
+			this.statusBarItemEl.onClickEvent(() => {
+				console.log('cb', !!cb);
+				if (cb) {
+					cb();
+					return;
+				}
+
+				this.activityLogModal.open();
+			});
+
+			return;
+		};
+
+		if (this.state === 'no-token' || this.state === 'invalid-token') {
+			text += 'CodeTime';
+			if (this.state === 'invalid-token') {
+				text += ': Invalid Token';
+			} else {
+				text += ': No Token';
+			}
+			syncText(text);
+			setClickEvent(() => {
+				this.openSettings();
+			});
+			return;
+		}
+
+		setClickEvent();
+
+		if (this.state === 'error') {
+			text += 'CodeTime: Error';
+			syncText(text);
+			return;
+		}
+
+		if (this.state === 'disconnected') {
+			text += 'Codetime: Disconnected';
+			syncText(text);
+			return;
+		}
+
+		if (this.state === 'loading') {
+			text += 'Codetime: Loading...';
+			syncText(text);
+			return;
+		}
+
+		if (this.state === 'connected') {
+			if (!this.codeTimeData) {
+				text += 'CodeTime: Fetching...';
+			} else {
+				text += `${this.project}: ${this.convertMinutes(this.codeTimeData?.minutes ?? 0)}`;
+			}
+			syncText(text);
+			return;
+		}
+	}
+
+	private async testToken(): Promise<boolean> {
+		const url = new URL(`/v3/users/self`, this.plugin.settings.apiUrl);
+
+		this.activityLogModal.appendLine('Testing Authorization');
+
+		const response = await request({
+			url: url.toString(),
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${this.getTokenFromSettings()}`,
+				'User-Agent': 'obsidian-codetime',
+			},
+		}).catch((e) => {
+			this.errors++;
+
+			this.activityLogModal.appendLine(
+				`Failed to fetch CodeTime data: ${e?.message ?? 'Unknown error'}`,
+				'error',
+			);
+
+			this.state = 'invalid-token';
+			this.syncStatusBar();
+
+			// void this.reload();
+			return false;
+		});
+
+		if (!response) {
+			this.activityLogModal.appendLine('Authorization failed', 'error');
+			return false;
+		}
+
+		this.userData = typeof response === 'string' ? JSON.parse(response) : null;
+
+		console.log(this.userData);
+
+		this.activityLogModal.appendLine('Authorization successful', 'success');
+		return true;
+	}
+
+	private convertMinutes(minutes: number): string {
+		const hours = Math.floor(minutes / 60);
+		const remainingMinutes = minutes % 60;
+		return `${hours > 0 ? `${hours}h ` : ''}${remainingMinutes}m`;
+	}
+
+	private getTokenFromSettings(): string | null {
+		return this.plugin.app.secretStorage.getSecret(this.plugin.settings.codeTimeToken);
+	}
+
+	private openSettings(): void {
+		const app = this.plugin.app as SettingsApp;
+		app.setting.open();
+		app.setting.openTabById(this.plugin.manifest.id);
+	}
+
+	private async wait(ms: number): Promise<void> {
+		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
+}

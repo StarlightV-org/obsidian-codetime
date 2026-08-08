@@ -6,3 +6,69 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+.modal.codetime-activity-log-modal {
+	width: min(900px, 90vw);
+	height: min(760px, 85vh);
+}
+
+.codetime-activity-log-modal .modal-content {
+	display: flex;
+	min-height: 0;
+	flex-direction: column;
+}
+
+.codetime-log-toolbar {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.4rem;
+	margin-bottom: 1rem;
+}
+
+.codetime-log-filter {
+	min-width: 5rem;
+}
+
+.codetime-log-search {
+	width: 12rem;
+}
+
+.codetime-log-output {
+	flex: 1;
+	min-height: 12rem;
+	overflow: auto;
+	padding: 1rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	font-family: var(--font-monospace);
+	font-size: var(--font-small);
+	white-space: pre-wrap;
+}
+
+.codetime-log-line {
+	line-height: 1.5;
+}
+
+.codetime-log-line.is-info {
+	color: var(--text-muted);
+}
+
+.codetime-log-line.is-success {
+	color: var(--color-green);
+}
+
+.codetime-log-line.is-warning {
+	color: var(--color-orange);
+}
+
+.codetime-log-line.is-error {
+	color: var(--color-red);
+}
+
+.codetime-log-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 1rem;
+}
