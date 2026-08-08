@@ -31,11 +31,16 @@ jobs:
               run: |
                   [ -f styles.css ] && echo "exists=true" >> "$GITHUB_OUTPUT" || echo "exists=false" >> "$GITHUB_OUTPUT"
 
+            - name: Create zip package
+              run: |
+                  zip obsidian-open-pdf.zip main.js manifest.json
+
             - name: Attest build provenance
               uses: actions/attest@v4
               with:
                   subject-path: |
                       main.js
+                      obsidian-open-pdf.zip
                       ${{ steps.styles.outputs.exists == 'true' && 'styles.css' || '' }}
 
             - name: Create release
@@ -47,4 +52,4 @@ jobs:
                   gh release create "$tag" \
                     --title="$tag" \
                     --draft \
-                    main.js manifest.json ${{ steps.styles.outputs.exists == 'true' && 'styles.css' || '' }}
+                    main.js manifest.json obsidian-open-pdf.zip ${{ steps.styles.outputs.exists == 'true' && 'styles.css' || '' }}
