@@ -1,9 +1,9 @@
 {
 	"id": "starlightv-codetime",
-	"name": "CodeTime.dev",
+	"name": "Codetime",
 	"version": "1.0.13",
 	"minAppVersion": "1.13.0",
-	"description": "This is a plugin that integrates with CodeTime.dev to track your writing activity. This is not made by or affiliated with codetime.dev.",
+	"description": "Track time spent writing in Obsidian with your codetime.dev account.",
 	"author": "StarlightV-Org",
 	"authorUrl": "https://github.com/StarlightV-org",
 	"isDesktopOnly": false
