@@ -1,0 +1,11 @@
+{
+	"id": "starlightv-codetime",
+	"name": "CodeTime.dev",
+	"version": "1.0.0",
+	"minAppVersion": "1.13.0",
+	"description": "This is a plugin that integrates with CodeTime.dev to track your writing activity. This is not made by or affiliated with CodeTime.dev.",
+	"author": "m4x809",
+	"authorUrl": "https://github.com/StarlightV-org",
+	"fundingUrl": "https://github.com/StarlightV-org",
+	"isDesktopOnly": false
+}
