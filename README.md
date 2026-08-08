@@ -1,8 +1,16 @@
 # CodeTime.dev for Obsidian
 
-Track time spent writing in Obsidian with your [CodeTime.dev](https://codetime.dev) account. The plugin records relevant vault activity, shows the current project's time in the status bar, and provides a diagnostic activity log.
+Track time spent writing in Obsidian with your [codetime.dev](https://codetime.dev) account. The plugin records relevant vault activity, shows the current project's time in the status bar, and provides a diagnostic activity log.
 
+> [!important]
 > This is an independent integration and is not made by or affiliated with CodeTime.dev.
+> The plugin is loosely based on the [CodeTime VS Code extension](https://github.com/codetime/codetime-vscode), so some features may not be available.
+
+---
+
+> [!warning]
+> This plugin Requires an active codetime.dev account.
+> It is usable for free, but has a paid plan for viewing more then the past 90 days and some more advanced features.
 
 ## Features
 
@@ -21,9 +29,9 @@ Track time spent writing in Obsidian with your [CodeTime.dev](https://codetime.d
 1. Download `main.js`, `manifest.json`, and `styles.css` from the desired release.
 2. Create this folder in your vault:
 
-   ```text
-   <vault>/.obsidian/plugins/starlightv-codetime/
-   ```
+    ```text
+    <vault>/.obsidian/plugins/starlightv-codetime/
+    ```
 
 3. Copy the three downloaded files into that folder.
 4. In Obsidian, open **Settings → Community plugins**, enable community plugins if needed, then enable **CodeTime.dev**.
@@ -47,7 +55,7 @@ Build output is written to `main.js` in the plugin root. Reload Obsidian after r
 
 ## Setup
 
-1. Sign in to CodeTime.dev and get your token from its [account settings](https://codetime.dev/dashboard/settings).
+1. Sign in to [codetime.dev](https://codetime.dev) and get your token from its [account settings](https://codetime.dev/dashboard/settings).
 2. In Obsidian, open **Settings → Community plugins → CodeTime.dev**.
 3. Under **CodeTime Token**, select or create an Obsidian secret containing the token.
 4. Confirm the status bar no longer says `CodeTime: No Token` or `CodeTime: Invalid Token`.
@@ -56,12 +64,12 @@ The plugin validates the token when its settings are applied. Clicking a missing
 
 ## Settings
 
-| Setting | Default | Description |
-| --- | --- | --- |
-| CodeTime Token | — | An Obsidian secret containing the CodeTime API token. The token itself is not written to the plugin's settings data. |
-| Server URL | `https://api.codetime.dev` | CodeTime API base URL. Change this only when using another compatible server. |
-| Project Override | Vault name | Project name reported to CodeTime instead of the vault name. |
-| Hide File Names | On | Replaces the filename sent with a generated anonymous name. |
+| Setting          | Default                    | Description                                                                                                          |
+| ---------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| CodeTime Token   | —                          | An Obsidian secret containing the CodeTime API token. The token itself is not written to the plugin's settings data. |
+| Server URL       | `https://api.codetime.dev` | CodeTime API base URL. Change this only when using another compatible server.                                        |
+| Project Override | Vault name                 | Project name reported to CodeTime instead of the vault name.                                                         |
+| Hide File Names  | On                         | Replaces the filename sent with a generated anonymous name.                                                          |
 
 Use the reset button in the **CodeTime** settings section to restore the default server URL and project override. It keeps the configured token.
 
@@ -77,7 +85,6 @@ With **Hide File Names** enabled (the default), the real filename and path are n
 
 - Tracking requires network requests to the configured CodeTime server; it does not send vault note contents.
 - Your token is retrieved from Obsidian secret storage. Only its secret reference is saved in plugin settings.
-- The current implementation writes event payloads and API responses to Obsidian's developer console for debugging. Avoid sharing console logs if they may contain account or activity metadata.
 - Disabling the plugin stops its tracked event listeners and scheduled status updates.
 
 ## Activity log
@@ -88,11 +95,11 @@ Click the status-bar item while connected to open the activity log. It records c
 
 This project uses TypeScript, esbuild, npm, and the Obsidian API.
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start esbuild in watch mode. |
+| Command         | Purpose                                    |
+| --------------- | ------------------------------------------ |
+| `npm run dev`   | Start esbuild in watch mode.               |
 | `npm run build` | Type-check and create a production bundle. |
-| `npm run lint` | Run ESLint. |
+| `npm run lint`  | Run ESLint.                                |
 
 The required release artifacts are `main.js`, `manifest.json`, and `styles.css`. Do not commit generated dependencies or build output.
 
