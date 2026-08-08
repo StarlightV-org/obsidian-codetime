@@ -151,7 +151,7 @@ export class CodeTime {
 		this.lastTrackedAt.set(throttleKey, now);
 
 		const hideFile = this.plugin.settings.hideFileNames;
-		const newName = !hideFile ? file?.name : `Untitled-${crypto.randomUUID()}`;
+		const newName = !hideFile ? file?.name : `Untitled-${Date.now()}`;
 
 		const getOs = (): string => {
 			switch (true) {
