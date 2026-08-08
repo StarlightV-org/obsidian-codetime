@@ -3,7 +3,7 @@
 	"name": "Codetime",
 	"version": "1.0.14",
 	"minAppVersion": "1.13.0",
-	"description": "Track time spent writing in Obsidian with your codetime.dev account.",
+	"description": "Track time spent writing with your codetime.dev account.",
 	"author": "StarlightV-Org",
 	"authorUrl": "https://github.com/StarlightV-org",
 	"isDesktopOnly": false
