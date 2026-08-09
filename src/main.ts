@@ -8,6 +8,7 @@ export default class CodeTimePlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+
 		this.codeTime = new CodeTime(this);
 		this.addSettingTab(new CodeTimeSettingTab(this.app, this));
 		await this.codeTime.configure();

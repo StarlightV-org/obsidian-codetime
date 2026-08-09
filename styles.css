@@ -7,6 +7,13 @@ If your plugin does not need CSS, delete this file.
 
 */
 
+.codetime-status-bar-item {
+	cursor: pointer;
+	&:hover {
+		background: var(--background-modifier-hover);
+	}
+}
+
 .modal.codetime-activity-log-modal {
 	width: min(900px, 90vw);
 	height: min(760px, 85vh);

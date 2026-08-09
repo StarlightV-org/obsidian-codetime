@@ -1,10 +1,11 @@
+import { ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { Platform, request, type TAbstractFile, type TFile } from 'obsidian';
 import { ActivityLogModal } from './activity-log';
 import type CodeTimePlugin from './main';
 import type { Payload, SettingsApp, Stat } from './types';
 
 export class CodeTime {
-	private readonly project: string =
+	private project: string =
 		this.plugin.settings.projectOveride !== ''
 			? this.plugin.settings.projectOveride
 			: this.plugin.app.vault.getName();
@@ -17,13 +18,13 @@ export class CodeTime {
 
 	constructor(private readonly plugin: CodeTimePlugin) {
 		this.statusBarItemEl = plugin.addStatusBarItem();
-		this.activityLogModal = new ActivityLogModal(plugin.app);
+		this.activityLogModal = new ActivityLogModal(plugin.app, plugin);
 	}
 
 	async destroy(): Promise<void> {
 		this.statusBarItemEl.setText('Codetime: Disconnected');
-		this.activityLogModal.close();
 		this.state = 'disconnected';
+		// this.activityLogModal.close();
 	}
 
 	async reload(): Promise<void> {
@@ -32,15 +33,30 @@ export class CodeTime {
 
 	async configure(): Promise<void> {
 		await this.destroy();
-		// DEV
-		// this.openSettings();
 
+		this.project =
+			this.plugin.settings.projectOveride !== ''
+				? this.plugin.settings.projectOveride
+				: this.plugin.app.vault.getName();
+
+		// Set the status bar click event once, so it doesn't get re-registered every time
 		this.statusBarItemEl.onClickEvent(() => {
 			if (this.state === 'invalid-token' || this.state === 'no-token') {
 				this.openSettings();
 			} else {
 				this.activityLogModal.open();
 			}
+		});
+		this.statusBarItemEl.classList.add('codetime-status-bar-item');
+
+		// MARK: Commands
+		this.plugin.addCommand({
+			id: 'open-codetime-dashboard',
+			name: 'Open dashboard in browser',
+			callback: () => {
+				const url = new URL('/dashboard', this.plugin.settings.apiUrl.toString().replace('api.', ''));
+				window.open(url.toString(), '_blank');
+			},
 		});
 
 		this.state = 'loading';
@@ -49,6 +65,10 @@ export class CodeTime {
 		this.activityLogModal.appendLine(
 			`Project Override is ${this.plugin.settings.projectOveride === '' ? 'Off' : 'On'}`,
 			'warning',
+		);
+		this.activityLogModal.appendLine(
+			`Filenames are: ${this.plugin.settings.hideFileNames ? 'Hidden' : 'Visible'}`,
+			!this.plugin.settings.hideFileNames ? 'warning' : 'success',
 		);
 
 		const token = this.getTokenFromSettings();
@@ -110,42 +130,32 @@ export class CodeTime {
 				}),
 			);
 
-			// this.plugin.registerEditorExtension(
-			// 	ViewPlugin.fromClass(
-			// 		class {
-			// 			update(update: ViewUpdate) {
-			// 				// if (update.docChanged) {
-			// 				// 	console.log(update);
-			// 				// 	// Inspect update.transactions to calculate inserted/deleted lines.
-			// 				// }
-
-			// 				// if (update.selectionSet) {
-			// 				// 	console.log('update.selectionSet', update);
-			// 				// 	// update.state.selection.ranges
-			// 				// }
-
-			// 				// if (update.viewportChanged) {
-			// 				// 	console.log('update.viewportChanged', update);
-			// 				// 	// update.view.visibleRanges
-			// 				// }
-			// 			}
-			// 		},
-			// 	),
-			// );
+			const track = this.track.bind(this);
+			// Get the current open file
+			const file = this.plugin.app.workspace.getActiveFile();
+			this.plugin.registerEditorExtension(
+				ViewPlugin.fromClass(
+					class {
+						update(update: ViewUpdate) {
+							if (update.selectionSet) {
+								void track('selectionChanged', file);
+								// update.state.selection.ranges
+							}
+						}
+					},
+				),
+			);
 		});
 	}
 
 	private async track(event: string, file: TFile | TAbstractFile | undefined | null) {
-		// console.log(event, file);
-		// if (!file) return;
-
 		const originalFilePath = file?.path ?? '__no-file__';
 		const throttleKey = `${event}:${originalFilePath}`;
 		const now = Date.now();
 		const lastTime = this.lastTrackedAt.get(throttleKey);
 		if (lastTime !== undefined && now - lastTime < this.eventThrottleMs) {
 			this.activityLogModal.appendLine(`Throttled: ${event} ${originalFilePath}`);
-			return; // same event, same file, within the throttle window
+			return;
 		}
 
 		this.lastTrackedAt.set(throttleKey, now);
@@ -190,7 +200,10 @@ export class CodeTime {
 
 		const url = new URL(`/v3/users/event-log`, this.plugin.settings.apiUrl);
 
-		this.activityLogModal.appendLine(`Sending event: ${event}`);
+		this.activityLogModal.appendLine(
+			`Sending event: ${event} - ${file?.name ?? `unknown`}${hideFile ? ' (hidden)' : ''}`,
+			'info',
+		);
 
 		await request({
 			url: url.toString(),

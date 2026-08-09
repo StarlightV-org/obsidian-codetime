@@ -1,4 +1,5 @@
 import { type App, Modal } from 'obsidian';
+import type CodeTimePlugin from './main';
 
 export type ActivityLogLevel = 'info' | 'success' | 'warning' | 'error';
 
@@ -11,13 +12,16 @@ interface ActivityLogEntry {
 type ActivityLogFilter = ActivityLogLevel | 'all';
 
 export class ActivityLogModal extends Modal {
+	plugin: CodeTimePlugin;
 	private readonly entries: ActivityLogEntry[] = [];
 	private filter: ActivityLogFilter = 'all';
 	private searchTerm = '';
 	private logEl?: HTMLDivElement;
+	private reloadButton?: HTMLButtonElement;
 
-	constructor(app: App) {
+	constructor(app: App, plugin: CodeTimePlugin) {
 		super(app);
+		this.plugin = plugin;
 	}
 
 	onOpen(): void {
@@ -99,6 +103,11 @@ export class ActivityLogModal extends Modal {
 
 		const doneButton = footer.createEl('button', { text: 'Done' });
 		doneButton.addEventListener('click', () => this.close());
+
+		this.reloadButton = footer.createEl('button', { text: 'Reload' });
+		this.reloadButton.addEventListener('click', () => {
+			void this.plugin.codeTime.reload();
+		});
 
 		this.renderLog();
 	}

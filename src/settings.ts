@@ -15,7 +15,7 @@ export interface CodeTimePluginSettings {
 	apiUrl: string;
 	/** The project override to use for CodeTime requests. */
 	projectOveride: string;
-
+	/** Whether to hide file names in the activity log. */
 	hideFileNames: boolean;
 }
 
@@ -58,6 +58,23 @@ export class CodeTimeSettingTab extends PluginSettingTab {
 	override hide(): void {
 		this.unloadMarkdownComponents();
 		super.hide();
+	}
+
+	override async setControlValue(key: string, value: unknown): Promise<void> {
+		if (key === 'apiUrl' && typeof value === 'string') {
+			this.plugin.settings.apiUrl = value;
+		}
+
+		if (key === 'projectOveride' && typeof value === 'string') {
+			this.plugin.settings.projectOveride = value;
+		}
+
+		if (key === 'hideFileNames' && typeof value === 'boolean') {
+			this.plugin.settings.hideFileNames = value;
+		}
+
+		await this.plugin.saveSettings();
+		await this.plugin.codeTime.configure();
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
