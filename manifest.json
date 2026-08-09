@@ -1,7 +1,7 @@
 {
 	"id": "starlightv-codetime",
 	"name": "Codetime",
-	"version": "1.0.17",
+	"version": "1.0.18",
 	"minAppVersion": "1.13.0",
 	"description": "Track time spent writing with your codetime.dev account.",
 	"author": "StarlightV-Org",
