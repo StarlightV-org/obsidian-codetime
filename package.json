@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-codetime",
-	"version": "1.0.16",
+	"version": "1.0.17",
 	"main": "main.js",
 	"description": "This is a plugin that integrates with CodeTime.dev to track your writing activity. This is not made by or affiliated with codetime.dev.",
 	"keywords": [],

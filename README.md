@@ -2,13 +2,13 @@
 
 Track time spent writing in Obsidian with your [codetime.dev](https://codetime.dev) account. The plugin records relevant vault activity, shows the current project's time in the status bar, and provides a diagnostic activity log.
 
-> [!info]+Disclaimer
+> [!info]+ Disclaimer
 > This is an independent integration and is not made by or affiliated with CodeTime.dev.
 > The plugin is loosely based on the [CodeTime VS Code extension](https://github.com/codetime/codetime-vscode), so some features may not be available.
 
 ---
 
-> [!warning]+Account and Paid Plan
+> [!warning]+ Account and Paid Plan
 > This plugin Requires an active codetime.dev account.
 > It is usable for free, but has a paid plan for viewing more then the past 90 days and some more advanced features.
 
