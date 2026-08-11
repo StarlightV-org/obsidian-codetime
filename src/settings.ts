@@ -21,6 +21,8 @@ export interface CodeTimePluginSettings {
 	throttleTelemetry: number;
 	/** The update interval setting. in minutes */
 	updateInterval: number;
+	/** Pause the update on inactivity. */
+	pauseUpdateOnInactivity: boolean;
 }
 
 export const DEFAULT_SETTINGS: CodeTimePluginSettings = {
@@ -30,6 +32,7 @@ export const DEFAULT_SETTINGS: CodeTimePluginSettings = {
 	hideFileNames: true,
 	throttleTelemetry: 1,
 	updateInterval: 1,
+	pauseUpdateOnInactivity: true,
 };
 
 export class CodeTimeSettingTab extends PluginSettingTab {
@@ -187,6 +190,11 @@ export class CodeTimeSettingTab extends PluginSettingTab {
 						name: 'Update Interval',
 						desc: 'The interval at which the current telemetry data is fetched from the server. (in minutes)',
 						control: { type: 'slider', key: 'updateInterval', min: 1, max: 10, step: 1 },
+					},
+					{
+						name: 'Pause Update on Inactivity',
+						desc: 'Pause the update on inactivity.',
+						control: { type: 'toggle', key: 'pauseUpdateOnInactivity', defaultValue: true },
 					},
 				],
 			},

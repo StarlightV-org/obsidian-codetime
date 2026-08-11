@@ -13,8 +13,9 @@ export class CodeTime {
 	private readonly activityLogModal: ActivityLogModal;
 	private state: 'loading' | 'connected' | 'disconnected' | 'no-token' | 'invalid-token' | 'error' = 'disconnected';
 	private codeTimeData: { minutes: number } | null = null;
-	private readonly eventThrottleMs = 1_000;
 	private readonly lastTrackedAt = new Map<string, number>();
+	private lastEventTime: number = 0;
+	private intervalId: number | null = null;
 
 	constructor(private readonly plugin: CodeTimePlugin) {
 		this.statusBarItemEl = plugin.addStatusBarItem();
@@ -24,6 +25,7 @@ export class CodeTime {
 	async destroy(): Promise<void> {
 		this.statusBarItemEl.setText('Codetime: Disconnected');
 		this.state = 'disconnected';
+		this.stopLoop();
 		// this.activityLogModal.close();
 	}
 
@@ -103,15 +105,32 @@ export class CodeTime {
 
 	private async startLoop(): Promise<void> {
 		this.activityLogModal.appendLine('Starting loop');
-		this.plugin.registerInterval(
+		this.intervalId = this.plugin.registerInterval(
 			window.setInterval(
 				async () => {
+					if (this.plugin.settings.pauseUpdateOnInactivity) {
+						const now = Date.now();
+						if (now - this.lastEventTime > this.plugin.settings.updateInterval * 60 * 1000) {
+							this.activityLogModal.appendLine('No activity, stopping');
+							this.stopLoop();
+							return;
+						}
+					}
+
 					this.activityLogModal.appendLine('Fetching data');
 					await this.fetchCurrentCodeTime();
 				},
 				1000 * this.plugin.settings.updateInterval * 60,
 			),
 		);
+	}
+
+	private stopLoop(): void {
+		if (this.intervalId !== null) {
+			window.clearInterval(this.intervalId);
+			this.intervalId = null;
+			this.activityLogModal.appendLine('Loop stopped');
+		}
 	}
 
 	private listenFor(): void {
@@ -162,9 +181,9 @@ export class CodeTime {
 		const now = Date.now();
 		const lastTime = this.lastTrackedAt.get(throttleKey);
 		if (lastTime !== undefined && now - lastTime < this.plugin.settings.throttleTelemetry * 1000) {
-			this.activityLogModal.appendLine(
-				`Throttled: ${event} ${originalFilePath}` + ` (last tracked ${now - lastTime}ms ago)`,
-			);
+			// this.activityLogModal.appendLine(
+			// 	`Throttled: ${event} ${originalFilePath}` + ` (last tracked ${now - lastTime}ms ago)`,
+			// );
 			return;
 		}
 
@@ -214,6 +233,11 @@ export class CodeTime {
 			`Sending event: ${event} - ${file?.name ?? `unknown`}${hideFile ? ' (hidden)' : ''}`,
 			'success',
 		);
+
+		this.lastEventTime = Date.now();
+		if (this.intervalId === null) {
+			void this.startLoop();
+		}
 
 		await request({
 			url: url.toString(),
@@ -270,7 +294,7 @@ export class CodeTime {
 		let text = '';
 
 		const syncText = (text: string) => {
-			this.activityLogModal.appendLine(`State: ${this.state}`);
+			// this.activityLogModal.appendLine(`State: ${this.state}`);
 			this.statusBarItemEl.setText(text);
 		};
 
