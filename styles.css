@@ -57,6 +57,34 @@ If your plugin does not need CSS, delete this file.
 	line-height: 1.5;
 }
 
+.codetime-log-timestamp {
+	color: var(--text-faint);
+}
+
+.codetime-log-category {
+	font-weight: var(--font-semibold);
+}
+
+.codetime-log-category--loop {
+	color: var(--color-blue);
+}
+
+.codetime-log-category--plugin {
+	color: var(--color-purple);
+}
+
+.codetime-log-category--auth {
+	color: var(--color-green);
+}
+
+.codetime-log-category--api {
+	color: var(--color-cyan);
+}
+
+.codetime-log-category--event {
+	color: var(--color-yellow);
+}
+
 .codetime-log-line.is-info {
 	color: var(--text-muted);
 }

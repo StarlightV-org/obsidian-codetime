@@ -63,31 +63,31 @@ export class CodeTime {
 
 		this.state = 'loading';
 		this.syncStatusBar();
-		this.activityLogModal.appendLine(`Vault: ${this.project}`);
+		this.activityLogModal.appendLine(`[PLUGIN]: Vault - ${this.project}`);
 		this.activityLogModal.appendLine(
-			`Project Override is ${this.plugin.settings.projectOveride === '' ? 'Off' : 'On'}`,
+			`[PLUGIN]: Project Override - ${this.plugin.settings.projectOveride === '' ? 'Off' : 'On'}`,
 			'warning',
 		);
 		this.activityLogModal.appendLine(
-			`Filenames are: ${this.plugin.settings.hideFileNames ? 'Hidden' : 'Visible'}`,
+			`[PLUGIN]: Filenames - ${this.plugin.settings.hideFileNames ? 'Hidden' : 'Visible'}`,
 			!this.plugin.settings.hideFileNames ? 'warning' : 'success',
 		);
 		this.activityLogModal.appendLine(
-			`Throttle Telemetry: ${this.plugin.settings.throttleTelemetry} seconds`,
+			`[PLUGIN]: Throttle Telemetry - ${this.plugin.settings.throttleTelemetry} seconds`,
 			'info',
 		);
-		this.activityLogModal.appendLine(`Update Interval: ${this.plugin.settings.updateInterval} minutes`, 'info');
+		this.activityLogModal.appendLine(`[PLUGIN]: Update Interval - ${this.plugin.settings.updateInterval} minutes`, 'info');
 
 		const token = this.getTokenFromSettings();
 
 		if (!token) {
 			this.state = 'no-token';
 			this.syncStatusBar();
-			this.activityLogModal.appendLine('No Token Provided', 'error');
+			this.activityLogModal.appendLine('[AUTH]: Token - missing', 'error');
 			return;
 		}
 
-		this.activityLogModal.appendLine('Token is configured');
+		this.activityLogModal.appendLine('[AUTH]: Token - configured');
 		if (!(await this.testToken())) {
 			return;
 		}
@@ -95,7 +95,7 @@ export class CodeTime {
 		this.state = 'connected';
 		this.syncStatusBar();
 
-		this.activityLogModal.appendLine('Connecting to server');
+		this.activityLogModal.appendLine('[API]: Connecting');
 		await this.fetchCurrentCodeTime();
 		this.syncStatusBar();
 
@@ -104,20 +104,20 @@ export class CodeTime {
 	}
 
 	private async startLoop(): Promise<void> {
-		this.activityLogModal.appendLine('Starting loop');
+		this.activityLogModal.appendLine('[LOOP]: Started');
 		this.intervalId = this.plugin.registerInterval(
 			window.setInterval(
 				async () => {
 					if (this.plugin.settings.pauseUpdateOnInactivity) {
 						const now = Date.now();
 						if (now - this.lastEventTime > this.plugin.settings.updateInterval * 60 * 1000) {
-							this.activityLogModal.appendLine('No activity, stopping');
+							this.activityLogModal.appendLine('[LOOP]: No activity - stopping');
 							this.stopLoop();
 							return;
 						}
 					}
 
-					this.activityLogModal.appendLine('Fetching data');
+					this.activityLogModal.appendLine('[LOOP]: Fetching data');
 					await this.fetchCurrentCodeTime();
 				},
 				1000 * this.plugin.settings.updateInterval * 60,
@@ -129,7 +129,7 @@ export class CodeTime {
 		if (this.intervalId !== null) {
 			window.clearInterval(this.intervalId);
 			this.intervalId = null;
-			this.activityLogModal.appendLine('Loop stopped');
+			this.activityLogModal.appendLine('[LOOP]: Stopped');
 		}
 	}
 
@@ -230,7 +230,7 @@ export class CodeTime {
 		const url = new URL(`/v3/users/event-log`, this.plugin.settings.apiUrl);
 
 		this.activityLogModal.appendLine(
-			`Sending event: ${event} - ${file?.name ?? `unknown`}${hideFile ? ' (hidden)' : ''}`,
+			`[EVENT]: Sending - ${event} - ${file?.name ?? `unknown`}${hideFile ? ' (hidden)' : ''}`,
 			'success',
 		);
 
@@ -249,7 +249,7 @@ export class CodeTime {
 			},
 			body: JSON.stringify(payload),
 		}).catch((e: Error) => {
-			this.activityLogModal.appendLine(`Failed to send event: ${e?.message ?? 'Unknown error'}`, 'error');
+			this.activityLogModal.appendLine(`[EVENT]: Send failed - ${e?.message ?? 'Unknown error'}`, 'error');
 			return null;
 		});
 	}
@@ -271,7 +271,7 @@ export class CodeTime {
 			},
 		}).catch((e: Error) => {
 			this.activityLogModal.appendLine(
-				`Failed to fetch CodeTime data: ${e?.message ?? 'Unknown error'}`,
+				`[API]: Fetch failed - ${e?.message ?? 'Unknown error'}`,
 				'error',
 			);
 			// void this.reload();
@@ -284,7 +284,7 @@ export class CodeTime {
 		const responseJson: Stat = JSON.parse(response) as Stat;
 		this.codeTimeData = { minutes: responseJson.data[0]?.duration ?? 0 };
 		this.activityLogModal.appendLine(
-			`CodeTime data fetched successfully: ${this.convertMinutes(this.codeTimeData.minutes)} (${this.codeTimeData.minutes} minutes)`,
+			`[API]: Data fetched - ${this.convertMinutes(this.codeTimeData.minutes)} (${this.codeTimeData.minutes} minutes)`,
 			'success',
 		);
 		this.syncStatusBar();
@@ -341,7 +341,7 @@ export class CodeTime {
 	private async testToken(): Promise<boolean> {
 		const url = new URL(`/v3/users/self`, this.plugin.settings.apiUrl);
 
-		this.activityLogModal.appendLine('Testing Authorization');
+		this.activityLogModal.appendLine('[AUTH]: Testing');
 
 		const response = await request({
 			url: url.toString(),
@@ -353,7 +353,7 @@ export class CodeTime {
 			},
 		}).catch((e: Error) => {
 			this.activityLogModal.appendLine(
-				`Failed to fetch CodeTime data: ${e?.message ?? 'Unknown error'}`,
+				`[AUTH]: Test failed - ${e?.message ?? 'Unknown error'}`,
 				'error',
 			);
 
@@ -365,12 +365,12 @@ export class CodeTime {
 		});
 
 		if (!response) {
-			this.activityLogModal.appendLine('Authorization failed', 'error');
+			this.activityLogModal.appendLine('[AUTH]: Failed', 'error');
 			return false;
 		}
 
 		// this.userData = typeof response === 'string' ? (JSON.parse(response) as UserData) : null;
-		this.activityLogModal.appendLine('Authorization successful', 'success');
+		this.activityLogModal.appendLine('[AUTH]: Successful', 'success');
 		return true;
 	}
 

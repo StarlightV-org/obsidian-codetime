@@ -127,7 +127,7 @@ export class ActivityLogModal extends Modal {
 			const line = this.logEl.createDiv({
 				cls: ['codetime-log-line', `is-${entry.level}`],
 			});
-			line.setText(this.formatEntry(entry));
+			this.renderEntry(line, entry);
 		}
 
 		this.logEl.scrollTop = this.logEl.scrollHeight;
@@ -139,6 +139,26 @@ export class ActivityLogModal extends Modal {
 		const timestamp = `${date.getHours()}:${this.pad(date.getMinutes())}:${this.pad(date.getSeconds())}`;
 
 		return `${timestamp} - ${entry.message}`;
+	}
+
+	private renderEntry(line: HTMLDivElement, entry: ActivityLogEntry): void {
+		const date = entry.timestamp;
+		const timestamp = `${date.getHours()}:${this.pad(date.getMinutes())}:${this.pad(date.getSeconds())}`;
+		line.createSpan({ cls: 'codetime-log-timestamp', text: `${timestamp} - ` });
+
+		const categoryMatch = entry.message.match(/^\[([A-Z]+)\]:\s*(.*)$/);
+		if (!categoryMatch) {
+			line.createSpan({ text: entry.message });
+			return;
+		}
+
+		const category = categoryMatch[1] ?? 'UNKNOWN';
+		const message = categoryMatch[2] ?? '';
+		line.createSpan({
+			cls: ['codetime-log-category', `codetime-log-category--${category.toLowerCase()}`],
+			text: `[${category}]:`,
+		});
+		line.createSpan({ cls: 'codetime-log-message', text: ` ${message}` });
 	}
 
 	private pad(value: number): string {
