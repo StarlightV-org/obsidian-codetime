@@ -28,8 +28,8 @@ export const DEFAULT_SETTINGS: CodeTimePluginSettings = {
 	apiUrl: 'https://api.codetime.dev',
 	projectOveride: '',
 	hideFileNames: true,
-	throttleTelemetry: 1_000,
-	updateInterval: 60,
+	throttleTelemetry: 1,
+	updateInterval: 1,
 };
 
 export class CodeTimeSettingTab extends PluginSettingTab {
