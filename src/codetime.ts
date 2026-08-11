@@ -70,6 +70,11 @@ export class CodeTime {
 			`Filenames are: ${this.plugin.settings.hideFileNames ? 'Hidden' : 'Visible'}`,
 			!this.plugin.settings.hideFileNames ? 'warning' : 'success',
 		);
+		this.activityLogModal.appendLine(
+			`Throttle Telemetry: ${this.plugin.settings.throttleTelemetry} seconds`,
+			'info',
+		);
+		this.activityLogModal.appendLine(`Update Interval: ${this.plugin.settings.updateInterval} minutes`, 'info');
 
 		const token = this.getTokenFromSettings();
 
@@ -99,10 +104,13 @@ export class CodeTime {
 	private async startLoop(): Promise<void> {
 		this.activityLogModal.appendLine('Starting loop');
 		this.plugin.registerInterval(
-			window.setInterval(async () => {
-				this.activityLogModal.appendLine('Fetching data');
-				await this.fetchCurrentCodeTime();
-			}, 1000 * 60),
+			window.setInterval(
+				async () => {
+					this.activityLogModal.appendLine('Fetching data');
+					await this.fetchCurrentCodeTime();
+				},
+				1000 * this.plugin.settings.updateInterval * 60,
+			),
 		);
 	}
 
@@ -153,8 +161,10 @@ export class CodeTime {
 		const throttleKey = `${event}:${originalFilePath}`;
 		const now = Date.now();
 		const lastTime = this.lastTrackedAt.get(throttleKey);
-		if (lastTime !== undefined && now - lastTime < this.eventThrottleMs) {
-			this.activityLogModal.appendLine(`Throttled: ${event} ${originalFilePath}`);
+		if (lastTime !== undefined && now - lastTime < this.plugin.settings.throttleTelemetry * 1000) {
+			this.activityLogModal.appendLine(
+				`Throttled: ${event} ${originalFilePath}` + ` (last tracked ${now - lastTime}ms ago)`,
+			);
 			return;
 		}
 
@@ -202,7 +212,7 @@ export class CodeTime {
 
 		this.activityLogModal.appendLine(
 			`Sending event: ${event} - ${file?.name ?? `unknown`}${hideFile ? ' (hidden)' : ''}`,
-			'info',
+			'success',
 		);
 
 		await request({

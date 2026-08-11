@@ -17,6 +17,10 @@ export interface CodeTimePluginSettings {
 	projectOveride: string;
 	/** Whether to hide file names in the activity log. */
 	hideFileNames: boolean;
+	/** The throttle telemetry setting. in seconds */
+	throttleTelemetry: number;
+	/** The update interval setting. in minutes */
+	updateInterval: number;
 }
 
 export const DEFAULT_SETTINGS: CodeTimePluginSettings = {
@@ -24,6 +28,8 @@ export const DEFAULT_SETTINGS: CodeTimePluginSettings = {
 	apiUrl: 'https://api.codetime.dev',
 	projectOveride: '',
 	hideFileNames: true,
+	throttleTelemetry: 1_000,
+	updateInterval: 60,
 };
 
 export class CodeTimeSettingTab extends PluginSettingTab {
@@ -71,6 +77,14 @@ export class CodeTimeSettingTab extends PluginSettingTab {
 
 		if (key === 'hideFileNames' && typeof value === 'boolean') {
 			this.plugin.settings.hideFileNames = value;
+		}
+
+		if (key === 'throttleTelemetry' && typeof value === 'number') {
+			this.plugin.settings.throttleTelemetry = value;
+		}
+
+		if (key === 'updateInterval' && typeof value === 'number') {
+			this.plugin.settings.updateInterval = value;
 		}
 
 		await this.plugin.saveSettings();
@@ -157,6 +171,22 @@ export class CodeTimeSettingTab extends PluginSettingTab {
 							key: 'hideFileNames',
 							defaultValue: true,
 						},
+					},
+				],
+			},
+			{
+				type: 'group',
+				heading: 'Performance',
+				items: [
+					{
+						name: 'Throttle Telemetry',
+						desc: 'Throttle telemetry data to reduce network usage. (in seconds)',
+						control: { type: 'slider', key: 'throttleTelemetry', min: 1, max: 10, step: 1 },
+					},
+					{
+						name: 'Update Interval',
+						desc: 'The interval at which the current telemetry data is fetched from the server. (in minutes)',
+						control: { type: 'slider', key: 'updateInterval', min: 1, max: 10, step: 1 },
 					},
 				],
 			},
