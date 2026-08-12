@@ -23,6 +23,9 @@ export interface CodeTimePluginSettings {
 	updateInterval: number;
 	/** Pause the update on inactivity. */
 	pauseUpdateOnInactivity: boolean;
+
+	// INTERNAL
+	pluginEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: CodeTimePluginSettings = {
@@ -33,6 +36,9 @@ export const DEFAULT_SETTINGS: CodeTimePluginSettings = {
 	throttleTelemetry: 1,
 	updateInterval: 1,
 	pauseUpdateOnInactivity: true,
+
+	// INTERNAL
+	pluginEnabled: true,
 };
 
 export class CodeTimeSettingTab extends PluginSettingTab {
@@ -195,6 +201,19 @@ export class CodeTimeSettingTab extends PluginSettingTab {
 						name: 'Pause Update on Inactivity',
 						desc: 'Pause the update on inactivity.',
 						control: { type: 'toggle', key: 'pauseUpdateOnInactivity', defaultValue: true },
+					},
+				],
+			},
+			{
+				type: 'group',
+				heading: 'Hidden',
+				searchable: false,
+				visible: false,
+				items: [
+					{
+						name: 'Enabled',
+						desc: 'If the plugin is enabled.',
+						control: { type: 'toggle', key: 'pluginEnabled', defaultValue: true },
 					},
 				],
 			},

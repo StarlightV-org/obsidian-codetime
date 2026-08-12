@@ -5,13 +5,15 @@ import type CodeTimePlugin from './main';
 import type { Payload, SettingsApp, Stat } from './types';
 
 export class CodeTime {
+	public isActive: boolean = this.plugin.settings.pluginEnabled;
 	private project: string =
 		this.plugin.settings.projectOveride !== ''
 			? this.plugin.settings.projectOveride
 			: this.plugin.app.vault.getName();
 	private readonly statusBarItemEl: HTMLElement;
 	private readonly activityLogModal: ActivityLogModal;
-	private state: 'loading' | 'connected' | 'disconnected' | 'no-token' | 'invalid-token' | 'error' = 'disconnected';
+	private state: 'loading' | 'connected' | 'disconnected' | 'no-token' | 'invalid-token' | 'error' | 'disabled' =
+		'disconnected';
 	private codeTimeData: { minutes: number } | null = null;
 	private readonly lastTrackedAt = new Map<string, number>();
 	private lastEventTime: number = 0;
@@ -61,6 +63,14 @@ export class CodeTime {
 			},
 		});
 
+		if (!this.isActive) {
+			this.state = 'disabled';
+			this.syncStatusBar();
+			this.activityLogModal.appendLine('[PLUGIN]: Disabled');
+			this.activityLogModal.appendLine('[PLUGIN]: The plugin is currently disabled.');
+			return;
+		}
+
 		this.state = 'loading';
 		this.syncStatusBar();
 		this.activityLogModal.appendLine(`[PLUGIN]: Vault - ${this.project}`);
@@ -76,7 +86,10 @@ export class CodeTime {
 			`[PLUGIN]: Throttle Telemetry - ${this.plugin.settings.throttleTelemetry} seconds`,
 			'info',
 		);
-		this.activityLogModal.appendLine(`[PLUGIN]: Update Interval - ${this.plugin.settings.updateInterval} minutes`, 'info');
+		this.activityLogModal.appendLine(
+			`[PLUGIN]: Update Interval - ${this.plugin.settings.updateInterval} minutes`,
+			'info',
+		);
 
 		const token = this.getTokenFromSettings();
 
@@ -96,8 +109,6 @@ export class CodeTime {
 		this.syncStatusBar();
 
 		this.activityLogModal.appendLine('[API]: Connecting');
-		await this.fetchCurrentCodeTime();
-		this.syncStatusBar();
 
 		await this.startLoop();
 		this.listenFor();
@@ -105,6 +116,8 @@ export class CodeTime {
 
 	private async startLoop(): Promise<void> {
 		this.activityLogModal.appendLine('[LOOP]: Started');
+		await this.fetchCurrentCodeTime();
+		this.syncStatusBar();
 		this.intervalId = this.plugin.registerInterval(
 			window.setInterval(
 				async () => {
@@ -270,10 +283,7 @@ export class CodeTime {
 				'User-Agent': 'obsidian-codetime',
 			},
 		}).catch((e: Error) => {
-			this.activityLogModal.appendLine(
-				`[API]: Fetch failed - ${e?.message ?? 'Unknown error'}`,
-				'error',
-			);
+			this.activityLogModal.appendLine(`[API]: Fetch failed - ${e?.message ?? 'Unknown error'}`, 'error');
 			// void this.reload();
 			return null;
 		});
@@ -297,6 +307,12 @@ export class CodeTime {
 			// this.activityLogModal.appendLine(`State: ${this.state}`);
 			this.statusBarItemEl.setText(text);
 		};
+
+		if (this.state === 'disabled') {
+			text += 'Codetime: Disabled';
+			syncText(text);
+			return;
+		}
 
 		if (this.state === 'no-token' || this.state === 'invalid-token') {
 			text += 'CodeTime';
@@ -352,10 +368,7 @@ export class CodeTime {
 				'User-Agent': 'obsidian-codetime',
 			},
 		}).catch((e: Error) => {
-			this.activityLogModal.appendLine(
-				`[AUTH]: Test failed - ${e?.message ?? 'Unknown error'}`,
-				'error',
-			);
+			this.activityLogModal.appendLine(`[AUTH]: Test failed - ${e?.message ?? 'Unknown error'}`, 'error');
 
 			this.state = 'invalid-token';
 			this.syncStatusBar();

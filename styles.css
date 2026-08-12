@@ -104,6 +104,14 @@ If your plugin does not need CSS, delete this file.
 .codetime-log-footer {
 	display: flex;
 	justify-content: flex-end;
+	align-items: center;
 	gap: 0.5rem;
 	margin-top: 1rem;
+}
+
+.codetime-log-state-control {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-right: auto;
 }

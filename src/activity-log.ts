@@ -1,4 +1,4 @@
-import { type App, Modal } from 'obsidian';
+import { type App, DropdownComponent, Modal, ToggleComponent } from 'obsidian';
 import type CodeTimePlugin from './main';
 
 export type ActivityLogLevel = 'info' | 'success' | 'warning' | 'error';
@@ -18,6 +18,7 @@ export class ActivityLogModal extends Modal {
 	private searchTerm = '';
 	private logEl?: HTMLDivElement;
 	private reloadButton?: HTMLButtonElement;
+	private stateToggle?: ToggleComponent;
 
 	constructor(app: App, plugin: CodeTimePlugin) {
 		super(app);
@@ -56,25 +57,18 @@ export class ActivityLogModal extends Modal {
 		const toolbar = this.contentEl.createDiv({
 			cls: 'codetime-log-toolbar',
 		});
-		const filter = toolbar.createEl('select', {
-			cls: 'codetime-log-filter',
-			attr: { 'aria-label': 'Filter log entries' },
+		const filter = new DropdownComponent(toolbar);
+		filter.selectEl.addClass('codetime-log-filter');
+		filter.selectEl.setAttribute('aria-label', 'Filter log entries');
+		filter.addOptions({
+			all: 'All',
+			info: 'Info',
+			success: 'Success',
+			warning: 'Warning',
+			error: 'Error',
 		});
-		for (const option of [
-			['all', 'All'],
-			['info', 'Info'],
-			['success', 'Success'],
-			['warning', 'Warning'],
-			['error', 'Error'],
-		] as const) {
-			filter.createEl('option', {
-				value: option[0],
-				text: option[1],
-			});
-		}
-		filter.value = this.filter;
-		filter.addEventListener('change', () => {
-			this.filter = filter.value as ActivityLogFilter;
+		filter.setValue(this.filter).onChange((value) => {
+			this.filter = value as ActivityLogFilter;
 			this.renderLog();
 		});
 
@@ -100,6 +94,19 @@ export class ActivityLogModal extends Modal {
 		const footer = this.contentEl.createDiv({
 			cls: 'codetime-log-footer',
 		});
+		const stateControl = footer.createDiv({
+			cls: 'codetime-log-state-control',
+		});
+		stateControl.createSpan({ text: 'CodeTime enabled' });
+		this.stateToggle = new ToggleComponent(stateControl)
+			.setValue(this.plugin.codeTime.isActive)
+			.onChange((isActive) => {
+				this.plugin.codeTime.isActive = isActive;
+				this.plugin.settings.pluginEnabled = isActive;
+				void this.plugin.saveSettings();
+				void this.plugin.codeTime.reload();
+			});
+		this.stateToggle.toggleEl.setAttribute('aria-label', 'Enable codetime');
 
 		const doneButton = footer.createEl('button', { text: 'Done' });
 		doneButton.addEventListener('click', () => this.close());
