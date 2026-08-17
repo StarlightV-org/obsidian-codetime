@@ -206,20 +206,30 @@ export class CodeTime {
 		const newName = !hideFile ? file?.name : `Untitled-${Date.now()}`;
 
 		const getOs = (): string => {
-			switch (true) {
-				case Platform.isWin:
-					return 'windows';
-				case Platform.isLinux:
-					return 'linux';
-				case Platform.isIosApp:
-					return 'ios';
-				case Platform.isAndroidApp:
-					return 'android';
-				case Platform.isMacOS:
-					return 'macos';
-				default:
-					return 'unknown';
+			if (Platform.isDesktopApp) {
+				const desktopProcess = globalThis as typeof globalThis & {
+					process?: { getSystemVersion?: () => string };
+				};
+				const version = desktopProcess.process?.getSystemVersion?.();
+
+				if (Platform.isWin && version) {
+					const build = Number(version.split('.')[2]);
+
+					// Windows 11 reports NT 10.0 internally; builds 22000+ are Windows 11.
+					return build >= 22000 ? 'Windows 11' : `Windows ${version}`;
+				}
+
+				if (Platform.isMacOS && version) {
+					const majorVersion = version.split('.')[0];
+					return `macOS ${majorVersion}`;
+				}
 			}
+
+			if (Platform.isLinux) return 'Linux';
+			if (Platform.isIosApp) return 'iOS';
+			if (Platform.isAndroidApp) return 'Android';
+
+			return 'Unknown';
 		};
 		const os = getOs();
 
